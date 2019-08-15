@@ -144,12 +144,13 @@ class Node(Greenlet):
 
     def _serve_forever(self):
         def _handle(socket, address):
-            gevent.spawn(self._create_handle_request(), socket, address)
+            t = gevent.spawn(self._create_handle_request(), socket, address)
+            t.join()
             #thread = Thread(target=self._handle_request, args=(socket,address))
             #thread.daemon = True
             #thread.start()
-            while True:
-                gevent.sleep(0)
+            #while True:
+            #    gevent.sleep(0)
         server = StreamServer(self.addresses_list[self.id], _handle)
         server.start()
         print("Started server for node", self.id, "on", self.addresses_list[self.id])
