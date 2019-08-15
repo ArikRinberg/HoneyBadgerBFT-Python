@@ -1,3 +1,7 @@
+
+import sys
+sys.path.insert(0, "/home/ubuntu/HoneyBadgerBFT-Python")
+
 import random
 from collections import defaultdict
 

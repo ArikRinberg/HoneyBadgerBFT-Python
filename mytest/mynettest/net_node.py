@@ -1,16 +1,19 @@
 import gevent
 import pickle
 
-from gevent import Greenlet
+from gevent import Greenlet, sleep
 from gevent import socket, monkey
 from gevent.queue import Queue
+from gevent.server import StreamServer
 from honeybadgerbft.crypto.threshsig.boldyreva import serialize as tsig_serialize, deserialize1 as tsig_deserialize
 from honeybadgerbft.crypto.threshenc.tpke import serialize as tenc_serialize, deserialize1 as tenc_deserialize
 from honeybadgerbft.core.honeybadger import HoneyBadgerBFT
 
 from multiprocessing import Process
+from threading import Thread
 import time, os, logging
 import traceback
+import socks
 
 
 
@@ -48,169 +51,181 @@ class Node(Greenlet):
             self.logger = set_logger_of_node(self.id)
         else:
             self.logger = logger
-        Greenlet.__init__(self)
+        self.serverThread = None
 
+        Greenlet.__init__(self)
     def _run(self):
         self.logger.info("node %d is running..." % self.id)
         print("node %d is running..." % self.id)
-        self._serve_forever()
+        self.serverThread = Greenlet(self._serve_forever)
+        self.serverThread.start()
+    def _create_handle_request(self):
+        def _handle_request(sock, address):
+            def _finish(e: Exception):
+                self.logger.error("node %d's server is closing..." % self.id)
+                self.logger.error(str(e))
+                print(e)
+                print("node %d's server is closing..." % self.id)
 
-    def _handle_request(self, sock, address):
-
-        def _finish(e: Exception):
-            self.logger.error("node %d's server is closing..." % self.id)
-            self.logger.error(str(e))
-            print(e)
-            print("node %d's server is closing..." % self.id)
-            pass
-
-        buf = b''
-        try:
-            while True:
-                gevent.sleep(0)
-                buf += sock.recv(4096)
-                tmp = buf.split(self.SEP.encode('utf-8'), 1)
-                while len(tmp) == 2:
-                    buf = tmp[1]
-                    data = tmp[0]
-                    if data != '' and data:
-                        if data == 'ping'.encode('utf-8'):
-                            sock.sendall('pong'.encode('utf-8'))
-                            self.logger.info("node {} is pinging node {}...".format(address_to_id(address), self.id))
-                            print("node {} is pinging node {}...".format(address_to_id(address), self.id))
-                        else:
-                            (j, o) = (address_to_id(address), pickle.loads(data))
-                            assert j in range(len(self.addresses_list))
-                            try:
-                                (a, (h1, r, (h2, b, e))) = o
-                                if h1 == 'ACS_COIN' and h2 == 'COIN':
-                                    o = (a, (h1, r, (h2, b, tsig_deserialize(e))))
-                                    self.logger.info(str((self.id, (j, o))))
-                                    print(self.id, (j, o))
-                                    gevent.spawn(self.queue.put_nowait((j, o)))
-                                else:
-                                    raise ValueError
-                            except ValueError as e1:
+            buf = b''
+            try:
+                while True:
+                    gevent.sleep(0)
+                    #buf = fh.read(4096)
+                    buf += sock.recv(4096)
+                    tmp = buf.split(self.SEP.encode('utf-8'), 1)
+                    while len(tmp) == 2:
+                        buf = tmp[1]
+                        data = tmp[0]
+                        if data != '' and data:
+                            if data == 'ping'.encode('utf-8'):
+                                sock.sendall('pong'.encode('utf-8'))
+                                self.logger.info("node {} is ponging node {}...".format(address_to_id(address), self.id))
+                                print("node {} is ponging node {}...".format(address_to_id(address), self.id))
+                            else:
+                                (j, o) = (address_to_id(address), pickle.loads(data))
+                                assert j in range(len(self.addresses_list))
                                 try:
-                                    h2, b, e = o
-                                    if h2 == 'COIN':
-                                        o = (h2, b, tsig_deserialize(e))
-                                        #print("pickle loads group element", tsig_deserialize(e))
-                                        #print("pickle loads group element type", type(tsig_deserialize(e)))
+                                    (a, (h1, r, (h2, b, e))) = o
+                                    if h1 == 'ACS_COIN' and h2 == 'COIN':
+                                        o = (a, (h1, r, (h2, b, tsig_deserialize(e))))
                                         self.logger.info(str((self.id, (j, o))))
                                         print(self.id, (j, o))
                                         gevent.spawn(self.queue.put_nowait((j, o)))
                                     else:
                                         raise ValueError
-                                except ValueError as e2:
+                                except ValueError as e1:
                                     try:
-                                        (a, (h1, b, e)) = o
-                                        if h1 == 'TPKE':
-                                            #print("resolve problem tpke", o)
-                                            e1 = [None] * len(e)
-                                            for i in range(len(e)):
-                                                e1[i] = tenc_deserialize(e[i])
-                                            o = (a, (h1, b, e1))
+                                        h2, b, e = o
+                                        if h2 == 'COIN':
+                                            o = (h2, b, tsig_deserialize(e))
                                             self.logger.info(str((self.id, (j, o))))
                                             print(self.id, (j, o))
                                             gevent.spawn(self.queue.put_nowait((j, o)))
                                         else:
                                             raise ValueError
-                                    except ValueError as e3:
-                                        #print("problem objective", o)
+                                    except ValueError as e2:
                                         try:
-                                            self.logger.info(str((self.id, (j, o))))
-                                            print(self.id, (j, o))
-                                            gevent.spawn(self.queue.put_nowait((j, o)))
-                                        except Exception as e4:
-                                            self.logger.error(str(("problem objective", o, e1, e2, e3, e4, traceback.print_exc())))
-                                            print("problem objective", o)
-                                            print(e1)
-                                            print(e2)
-                                            print(e3)
-                                            print(e4)
-                                            traceback.print_exc()
-                    else:
-                        #print(data)
-                        self.logger.info('syntax error messages')
-                        print('syntax error messages')
-                        raise Exception
-                    tmp = buf.split(self.SEP.encode('utf-8'), 1)
-        except Exception as e:
-            self.logger.error(str((e, traceback.print_exc())))
-            print(e)
-            traceback.print_exc()
-            _finish(e)
+                                            (a, (h1, b, e)) = o
+                                            if h1 == 'TPKE':
+                                                e1 = [None] * len(e)
+                                                for i in range(len(e)):
+                                                    e1[i] = tenc_deserialize(e[i])
+                                                o = (a, (h1, b, e1))
+                                                self.logger.info(str((self.id, (j, o))))
+                                                print(self.id, (j, o))
+                                                gevent.spawn(self.queue.put_nowait((j, o)))
+                                            else:
+                                                raise ValueError
+                                        except ValueError as e3:
+                                            try:
+                                                self.logger.info(str((self.id, (j, o))))
+                                                print(self.id, (j, o))
+                                                gevent.spawn(self.queue.put_nowait((j, o)))
+                                            except Exception as e4:
+                                                self.logger.error(str(("problem objective", o, e1, e2, e3, e4, traceback.print_exc())))
+                                                print("problem objective", o)
+                                                print(e1)
+                                                print(e2)
+                                                print(e3)
+                                                print(e4)
+                                                traceback.print_exc()
+                        else:
+                            self.logger.info('syntax error messages')
+                            print('syntax error messages')
+                            raise Exception
+                        tmp = buf.split(self.SEP.encode('utf-8'), 1)
+            except Exception as e:
+                self.logger.error(str((e, traceback.print_exc())))
+                print(e)
+                traceback.print_exc()
+                _finish(e)
+        return _handle_request
 
     def _serve_forever(self):
-        self.server_sock = socket.socket()
-        self.server_sock.bind(("", self.port))
-        self.server_sock.listen(50)
-        while True:
-            sock, address = self.server_sock.accept()
-            gevent.spawn(self._handle_request, sock, address)
-            self.logger.info('node id %d accepts a new socket connection from node %d' % (self.id, address_to_id(address)))
-            print('node id %d accepts a new socket connection from node %d' % (self.id, address_to_id(address)))
-            gevent.sleep(0)
-            #self._handle_request(sock, address)
+        def _handle(socket, address):
+            gevent.spawn(self._create_handle_request(), socket, address)
+            #thread = Thread(target=self._handle_request, args=(socket,address))
+            #thread.daemon = True
+            #thread.start()
+            while True:
+                gevent.sleep(0)
+        server = StreamServer(self.addresses_list[self.id], _handle)
+        server.start()
+        print("Started server for node", self.id, "on", self.addresses_list[self.id])
+        print(server)
 
     def _watchdog_deamon(self):
         #self.server_sock.
         pass
 
     def connect_all(self):
+        def try_connect(j):
+          try:
+            self._connect(j)
+          except Exception as e:
+            self.logger.info(str((e, traceback.print_exc())))
+            print(e)
+            traceback.print_exc()
+            
         self.logger.info("node %d is fully meshing the network" % self.id)
         print("node %d is fully meshing the network" % self.id)
+#        threads = [Thread(target=try_connect, args=(j,)) for j in range(len(self.addresses_list))]
+#        for t in threads:
+#          t.start()
+#        for t in threads:
+#          t.join()
+         
         try:
             for j in range(len(self.addresses_list)):
                 self._connect(j)
-                #if self.socks[j] is None:
-                #print('node id %d:' % j)
-                #sock = socket.socket()
-                #sock.bind(("", self.port + 10 * j + 1))
-                #sock.connect(self.addresses_list[j])
-                #sock.sendall(('ping' + self.SEP).encode('utf-8'))
-                #pong = sock.recv(4096)
-                #if pong.decode('utf-8') == 'pong':
-                #    self.logger.info("node {} is ponging node {}...".format(j, self.id))
-                #    print("node {} is ponging node {}...".format(j, self.id))
-                #    self.socks[j] = sock
-                #    continue
-                #else:
-                #    self.logger.info("fails to build connect from {} to {}".format(self.id, j))
-                #    raise Exception
         except Exception as e:
             self.logger.info(str((e, traceback.print_exc())))
             print(e)
             traceback.print_exc()
 
     def _connect(self, j: int):
-        # if self.socks[j] is None:
-        # print('node id %d:' % j)
-        sock = socket.socket()
-        sock.bind(("", self.port + 10 * j + 1))
-        sock.connect(self.addresses_list[j])
+        retry = True
+        sock = None
+        while retry:
+          try:
+            sock = socket.socket()
+            sock.bind(("", self.port + 10 * j + 1))
+                #sock.connect(self.addresses_list[j])
+            #sock = socket.socksocket()
+            print("node {} attempting {}".format(self.id, self.addresses_list[j]))
+            sock.connect(self.addresses_list[j])
+            retry = False
+          except Exception as e:  # socks.SOCKS5Error:
+            print(e)
+            retry = True
+            sleep(1)
+            if sock is not None:
+                sock.close()
+        print("node",self.id, "is pinging", j)
         sock.sendall(('ping' + self.SEP).encode('utf-8'))
+        gevent.sleep(0)
         pong = sock.recv(4096)
+        print(sock)
+        self.socks[j] = sock
         if pong.decode('utf-8') == 'pong':
             self.logger.info("node {} is ponging node {}...".format(j, self.id))
             print("node {} is ponging node {}...".format(j, self.id))
-            self.socks[j] = sock
         else:
             self.logger.info("fails to build connect from {} to {}".format(self.id, j))
             raise Exception
 
     def _send(self, j: int, o: bytes):
         msg = b''.join([o, self.SEP.encode('utf-8')])
-        #gevent.sleep(0)
         try:
+            print("{} sending msg to {}".format(self.id, j))
             self.socks[j].sendall(msg)
         except Exception as e1:
             self.logger.error("fail to send msg")
             print("fail to send msg")
             try:
                 self._connect(j)
-                self.socks[j].connect(self.addresses_list[j])
+                #self.socks[j].connect(self.addresses_list[j])
                 self.socks[j].sendall(msg)
             except Exception as e2:
                 self.logger.error(str((e1, e2, traceback.print_exc())))
@@ -261,14 +276,8 @@ class Node(Greenlet):
                         traceback.print_exc()
 
     def _recv(self):
-        #time.sleep(0.001)
-        #try:
         (i, o) = self.queue.get()
-        #print("node %d is receving: " % self.id, (i, o))
         return (i, o)
-        #except Exception as e:
-        #   print(e)
-        #   pass
 
     def recv(self):
         return self._recv()
@@ -302,6 +311,4 @@ class HoneyBadgerBFTNode (HoneyBadgerBFT):
     def hbbft_instance(self):
         hbbft = gevent.spawn(HoneyBadgerBFT.run(self))
         return hbbft
-
-
 

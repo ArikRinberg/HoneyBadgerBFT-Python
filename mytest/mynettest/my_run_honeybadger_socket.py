@@ -17,104 +17,10 @@ from honeybadgerbft.core.honeybadger import BroadcastTag
 import time, logging, os
 import multiprocessing
 from multiprocessing import Process, Pool, Lock, Manager
-from mytest.mysockettest.socket_node import Node, HoneyBadgerBFTNode
+from mytest.mynettest.net_node import Node, HoneyBadgerBFTNode
 
 
 monkey.patch_all()
-
-
-
-
-
-#
-# ### Test asynchronous common subset
-# def _test_honeybadger_0(N=4, f=1, seed=None):
-#
-#     def run_hbbft_instance(badger: HoneyBadgerBFTNode):
-#
-#         # lock.acquire()
-#         # print(pid, "gets lock to start server")
-#         badger.start_server()
-#         # lock.release()
-#         # print(pid, "releases lock after starting server")
-#
-#         time.sleep(2)
-#         gevent.sleep(2)
-#
-#         # lock.acquire()
-#         # print(pid, "gets lock to fully connect")
-#         badger.connect_servers()
-#         # lock.release()
-#         # print(pid, "releases lock after fully connecting")
-#
-#         thread = gevent.spawn(badger.run())
-#         return thread
-#
-#     sid = 'sidA'
-#     # Generate threshold sig keys
-#     sPK, sSKs = dealer(N, f + 1, seed=seed)
-#
-#     # Generate threshold enc keys
-#     ePK, eSKs = tpke.dealer(N, f + 1)
-#
-#     rnd = random.Random(seed)
-#     # print 'SEED:', seed
-#     #router_seed = rnd.random()
-#     #sends, recvs = socket_router(N, seed=router_seed)
-#
-#     host = "127.0.0.1"
-#     port_base = int(rnd.random() * 5 + 1) * 10000
-#     addresses = [(host, port_base + 200 * i) for i in range(N)]
-#
-#     # This is an experiment parameter to specify the maximum round number
-#     K = 2
-#     #lock = Lock()
-#
-#     badgers = [None] * N
-#     threads = [None] * N
-#     outs = [None] * N
-#
-#     for i in range(N):
-#         badgers[i] = HoneyBadgerBFTNode(sid, i, 1, N, f,
-#                                     sPK, sSKs[i], ePK, eSKs[i],
-#                                     addresses_list=addresses, K=K)
-#
-#     print('start the test...')
-#     time_start = time.time()
-#
-#
-#     n = N
-#     ppid = os.getpid()
-#     try:
-#         while n != 0:
-#             n = n - 1
-#             pid = os.fork()
-#             if pid == 0:
-#                 print('sub process', n)
-#                 badgers[n].start_server()
-#                 time.sleep(2)
-#                 gevent.sleep(2)
-#                 badgers[n].connect_servers()
-#                 threads[n] = gevent.spawn(badgers[n].run())
-#                 outs[n] = threads[n].get()
-#                 #run_hbbft_instance(badgers[N])
-#                 #n += 1
-#                 print('sub process finishes', n)
-#                 break
-#             else:
-#                 print('parent process')
-#     except OSError as e:
-#         print(e)
-#
-#     pid = os.getpid()
-#     if pid == ppid:
-#         while n != 4:
-#             time.sleep(5)
-#             print('parent process is waiting...', n)
-#         time_end = time.time()
-#         print('complete the test...')
-#         print('time cost: ', time_end - time_start, 's')
-
 
 
 ### Test asynchronous common subset
