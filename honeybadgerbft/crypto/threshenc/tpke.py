@@ -84,6 +84,27 @@ class TPKEPublicKey(object):
         self.VK = VK
         self.VKs = VKs
 
+    def __getstate__(self):
+        """ """
+        d = dict(self.__dict__)
+        d['VK'] = serialize(self.VK)
+        d['VKs'] = list(map(serialize, self.VKs))
+        return d
+
+    def __setstate__(self, d):
+        """ """
+        self.__dict__ = d
+        self.VK = deserialize2(self.VK)
+        self.VKs = list(map(deserialize2, self.VKs))
+
+    def __eq__(self, other):
+        if isinstance(other, TPKEPublicKey):
+            return self.l == other.l and \
+                   self.k == other.k and \
+                   self.VK == other.VK and \
+                   self.VKs == other.VKs
+        return False
+
     def lagrange(self, S, j):
         """ """
         # Assert S is a subset of range(0,self.l)
@@ -157,6 +178,29 @@ class TPKEPrivateKey(TPKEPublicKey):
         assert 0 <= i < self.l
         self.i = i
         self.SK = SK
+
+
+    def __getstate__(self):
+        """ """
+        d = super(TPKEPrivateKey, self).__getstate__()
+        d["SK"]= serialize(self.SK)
+        return d
+
+    def __setstate__(self, d):
+        """ """
+        super(TPKEPrivateKey, self).__setstate__(d)
+        self.SK = deserialize0(self.SK)
+
+    def __eq__(self, other):
+        if isinstance(other, TPKEPrivateKey):
+            return self.l == other.l and \
+                   self.k == other.k and \
+                   self.VK == other.VK and \
+                   self.VKs == other.VKs and \
+                   self.i == other.i and \
+                   self.SK == other.SK
+        return False
+
 
     def decrypt_share(self, U, V, W):
         """ """

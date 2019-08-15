@@ -85,7 +85,6 @@ class TBLSPublicKey(object):
         self.__dict__ = d
         self.VK = deserialize2(self.VK)
         self.VKs = list(map(deserialize2, self.VKs))
-        print("I'm being depickled")
 
     def lagrange(self, S, j):
         """ """
@@ -129,6 +128,13 @@ class TBLSPublicKey(object):
                       for j, sig in sigs.items()], 1)
         return res
 
+    def __eq__(self, other):
+        if isinstance(other, TBLSPublicKey):
+            return self.l == other.l and \
+                   self.k == other.k and \
+                   self.VK == other.VK and \
+                   self.VKs == other.VKs
+        return False
 
 class TBLSPrivateKey(TBLSPublicKey):
     """ """
@@ -140,10 +146,30 @@ class TBLSPrivateKey(TBLSPublicKey):
         self.i = i
         self.SK = SK
 
+    def __getstate__(self):
+        """ """
+        d = super(TBLSPrivateKey, self).__getstate__()
+        d["SK"]= serialize(self.SK)
+        return d
+
+    def __setstate__(self, d):
+        """ """
+        super(TBLSPrivateKey, self).__setstate__(d)
+        self.SK = deserialize0(self.SK)
+
     def sign(self, h):
         """ """
         return h ** self.SK
-
+    
+    def __eq__(self, other):
+        if isinstance(other, TBLSPrivateKey):
+            return self.l == other.l and \
+                   self.k == other.k and \
+                   self.VK == other.VK and \
+                   self.VKs == other.VKs and \
+                   self.i == other.i and \
+                   self.SK == other.SK
+        return False
 
 def dealer(players=10, k=5, seed=None):
     """ """
