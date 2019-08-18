@@ -110,7 +110,8 @@ class Node(Greenlet):
                                             if h1 == 'TPKE':
                                                 e1 = [None] * len(e)
                                                 for i in range(len(e)):
-                                                    e1[i] = tenc_deserialize(e[i])
+                                                    if e[i] is not None:
+                                                        e1[i] = tenc_deserialize(e[i])
                                                 o = (a, (h1, b, e1))
                                                 self.logger.info(str((self.id, (j, o))))
                                                 print(self.id, (j, o))
@@ -261,19 +262,21 @@ class Node(Greenlet):
                         e1 = [None] * len(e)
                         if h1 == 'TPKE':
                             for i in range(len(e)):
-                                e1[i] = tenc_serialize(e[i])
-                                assert tenc_deserialize(e1[i]) == e[i]
+                                if e[i] is not None:
+                                  e1[i] = tenc_serialize(e[i])
+                                  assert tenc_deserialize(e1[i]) == e[i]
                             o = (a, (h1, b, e1))
+                            pickled = pickle.dumps(o)
                             self._send(j, pickle.dumps(o))
                         else:
                             raise Exception
                     except Exception as e3:
                         self.logger.error(str(("problem objective", o)))
                         print("problem objective", o)
-                        print(e)
-                        print(e1)
-                        print(e2)
-                        print(e3)
+                        print("e:",e)
+                        print("e1:",e1)
+                        print("e2:",e2)
+                        print("e3:",e3)
                         traceback.print_exc()
 
     def _recv(self):
