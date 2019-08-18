@@ -81,10 +81,12 @@ def _test_honeybadger(i: int, N=4, f=1, seed=None):
     process = Process(target=run_hbbft_instance, args=(badger, ))
     process.start()
     process.join()
-    print(process.get())
-    while process.is_alive():
+    
+    while True:
         time.sleep(5)
         print("parent is waiting...")
+        #if badger.transaction_buffer == []:
+        #  break
     print("Done")
 
 
