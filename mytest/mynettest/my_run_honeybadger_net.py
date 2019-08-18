@@ -78,13 +78,21 @@ def _test_honeybadger(i: int, N=4, f=1, seed=None):
     badger = HoneyBadgerBFTNode(sid, i, 1, N, f,
                                 sPK, sSKs[i], ePK, eSKs[i],
                                 addresses_list=addresses, K=K)
-    process = Process(target=run_hbbft_instance, args=(badger, ))
-    process.start()
-    process.join()
+
+    badger.start_server()
+    time.sleep(2)
+    gevent.sleep(2)
+
+    badger.connect_servers()
+    badger.run()
+
+    #process = Process(target=run_hbbft_instance, args=(badger, ))
+    #process.start()
+    #process.join()
     
-    while True:
-        time.sleep(5)
-        print("parent is waiting...")
+    #while True:
+     #   time.sleep(5)
+     #   print("parent is waiting...")
         #if badger.transaction_buffer == []:
         #  break
     print("Done")
