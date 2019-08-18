@@ -151,7 +151,7 @@ class Node(Greenlet):
             #thread.start()
             #while True:
             #    gevent.sleep(0)
-        server = StreamServer(self.addresses_list[self.id], _handle)
+        server = StreamServer((socket.gethostbyname(socket.gethostname()), self.addresses_list[self.id][1]), _handle)
         server.start()
         print("Started server for node", self.id, "on", self.addresses_list[self.id])
         print(server)
