@@ -73,7 +73,7 @@ def _test_honeybadger(i: int, N=4, f=1, seed=None):
     #addresses = [(host, port_base + 200 * i) for i in range(N)]
     addresses = loadAddresses()
     
-    K = 2
+    K = 80
         
     badger = HoneyBadgerBFTNode(sid, i, 1, N, f,
                                 sPK, sSKs[i], ePK, eSKs[i],
@@ -84,7 +84,10 @@ def _test_honeybadger(i: int, N=4, f=1, seed=None):
     gevent.sleep(2)
 
     badger.connect_servers()
+    start_time = time.time()
     badger.run()
+    end_time = time.time()
+    print("Elapsed time in seconds:", end_time-start_time)
 
     #process = Process(target=run_hbbft_instance, args=(badger, ))
     #process.start()
