@@ -49,7 +49,7 @@ def loadKeys():
     return (sPK, sSKs, ePK, eSKs)
 
 
-def _test_honeybadger(i: int, N=4, f=1, seed=None):
+def _test_honeybadger(i: int, K=2, N=4, f=1, seed=None):
     def run_hbbft_instance(badger: HoneyBadgerBFTNode):
             badger.start_server()
 
@@ -72,8 +72,6 @@ def _test_honeybadger(i: int, N=4, f=1, seed=None):
     #port_base = 10000
     #addresses = [(host, port_base + 200 * i) for i in range(N)]
     addresses = loadAddresses()
-    
-    K = 80
         
     badger = HoneyBadgerBFTNode(sid, i, 1, N, f,
                                 sPK, sSKs[i], ePK, eSKs[i],
@@ -111,6 +109,9 @@ def test_honeybadger_proc():
 
 if __name__ == '__main__':
     node = int(sys.argv[1])
+    K = 2
+    if len(sys.argv) > 2
+        K = int(sys.argv[2])
     #test_honeybadger_thread()
     #test_honeybadger_proc()
-    _test_honeybadger(node)
+    _test_honeybadger(node, K)
