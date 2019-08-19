@@ -32,8 +32,11 @@ def set_logger_of_node(id: int):
     return logger
 
 
-def address_to_id(address: tuple):
-    return int(address[1] % 10000 / 200)
+def address_to_id(address: tuple, addresses_list, self_id):
+    for i, add in enumerate(addresses_list):
+        if add[0] == address[0]:
+            return i
+    return self_id
 
 
 # Network node class: deal with socket communications
@@ -80,10 +83,10 @@ class Node(Greenlet):
                         if data != '' and data:
                             if data == 'ping'.encode('utf-8'):
                                 sock.sendall('pong'.encode('utf-8'))
-                                self.logger.info("node {} is ponging node {}...".format(address_to_id(address), self.id))
-                                print("node {} is ponging node {}...".format(address_to_id(address), self.id))
+                                self.logger.info("node {} is ponging node {}...".format(address_to_id(address, self.addresses_list, self.id), self.id))
+                                print("node {} is ponging node {}...".format(address_to_id(address, self.addresses_list, self.id), self.id))
                             else:
-                                (j, o) = (address_to_id(address), pickle.loads(data))
+                                (j, o) = (address_to_id(address, self.addresses_list, self.id), pickle.loads(data))
                                 assert j in range(len(self.addresses_list))
                                 try:
                                     (a, (h1, r, (h2, b, e))) = o
