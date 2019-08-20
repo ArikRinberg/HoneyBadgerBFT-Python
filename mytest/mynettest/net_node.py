@@ -93,7 +93,7 @@ class Node(Greenlet):
                                     if h1 == 'ACS_COIN' and h2 == 'COIN':
                                         o = (a, (h1, r, (h2, b, tsig_deserialize(e))))
                                         self.logger.info(str((self.id, (j, o))))
-                                        print(self.id, (j, o))
+                                        #print(self.id, (j, o))
                                         gevent.spawn(self.queue.put_nowait((j, o)))
                                     else:
                                         raise ValueError
@@ -103,7 +103,7 @@ class Node(Greenlet):
                                         if h2 == 'COIN':
                                             o = (h2, b, tsig_deserialize(e))
                                             self.logger.info(str((self.id, (j, o))))
-                                            print(self.id, (j, o))
+                                            #print(self.id, (j, o))
                                             gevent.spawn(self.queue.put_nowait((j, o)))
                                         else:
                                             raise ValueError
@@ -117,14 +117,14 @@ class Node(Greenlet):
                                                         e1[i] = tenc_deserialize(e[i])
                                                 o = (a, (h1, b, e1))
                                                 self.logger.info(str((self.id, (j, o))))
-                                                print(self.id, (j, o))
+                                                #print(self.id, (j, o))
                                                 gevent.spawn(self.queue.put_nowait((j, o)))
                                             else:
                                                 raise ValueError
                                         except ValueError as e3:
                                             try:
                                                 self.logger.info(str((self.id, (j, o))))
-                                                print(self.id, (j, o))
+                                                #print(self.id, (j, o))
                                                 gevent.spawn(self.queue.put_nowait((j, o)))
                                             except Exception as e4:
                                                 self.logger.error(str(("problem objective", o, e1, e2, e3, e4, traceback.print_exc())))
@@ -158,7 +158,6 @@ class Node(Greenlet):
         server = StreamServer((socket.gethostbyname(socket.gethostname()), self.addresses_list[self.id][1]), _handle)
         server.start()
         print("Started server for node", self.id, "on", self.addresses_list[self.id])
-        print(server)
 
     def _watchdog_deamon(self):
         #self.server_sock.
@@ -211,7 +210,6 @@ class Node(Greenlet):
         sock.sendall(('ping' + self.SEP).encode('utf-8'))
         gevent.sleep(0)
         pong = sock.recv(4096)
-        print(sock)
         self.socks[j] = sock
         if pong.decode('utf-8') == 'pong':
             self.logger.info("node {} is ponging node {}...".format(j, self.id))
@@ -223,7 +221,6 @@ class Node(Greenlet):
     def _send(self, j: int, o: bytes):
         msg = b''.join([o, self.SEP.encode('utf-8')])
         try:
-            print("{} sending msg to {}".format(self.id, j))
             self.socks[j].sendall(msg)
         except Exception as e1:
             self.logger.error("fail to send msg")
@@ -304,7 +301,6 @@ class HoneyBadgerBFTNode (HoneyBadgerBFT):
 
     def start_server(self):
         pid = os.getpid()
-        print('pid: ', pid)
         self.logger.info('node id %d is running on pid %d' % (self.id, pid))
         self.server.start()
 
