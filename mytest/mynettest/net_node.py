@@ -299,6 +299,7 @@ class HoneyBadgerBFTNode (HoneyBadgerBFT):
         #Process.__init__(self)
         self.logger = set_logger_of_node(id)
         self.server = Node(i=id, port=addresses_list[id][1], addresses_list=addresses_list, logger=self.logger)
+        self.tsxSize = tsxSize
         HoneyBadgerBFT.__init__(self, sid, id, B, N, f, sPK, sSK, ePK, eSK, send=None, recv=None, K=K)
 
     def start_server(self):
@@ -313,8 +314,8 @@ class HoneyBadgerBFTNode (HoneyBadgerBFT):
         self._recv = self.server.recv
         for r in range(self.K):
             tx = '<[%d HBBFT Input %d]>' % (self.id, r)
-            if len(tx) < tsxSize:
-                tx = tx + "!"*(tsxSize-len(tx))
+            if len(tx) < self.tsxSize:
+                tx = tx + "!"*(self.tsxSize-len(tx))
             HoneyBadgerBFT.submit_tx(self, tx)
 
     def hbbft_instance(self):
