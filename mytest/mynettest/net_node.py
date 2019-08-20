@@ -295,7 +295,7 @@ class Node(Greenlet):
 # Well defined node class to encapsulate almost everything
 class HoneyBadgerBFTNode (HoneyBadgerBFT):
 
-    def __init__(self, sid, id, B, N, f, sPK, sSK, ePK, eSK, addresses_list: list, K=3):
+    def __init__(self, sid, id, B, N, f, sPK, sSK, ePK, eSK, addresses_list: list, K=3, tsxSize = 20):
         #Process.__init__(self)
         self.logger = set_logger_of_node(id)
         self.server = Node(i=id, port=addresses_list[id][1], addresses_list=addresses_list, logger=self.logger)
@@ -312,7 +312,9 @@ class HoneyBadgerBFTNode (HoneyBadgerBFT):
         self._send = self.server.send
         self._recv = self.server.recv
         for r in range(self.K):
-            tx = '<[HBBFT Input %d]>' % (self.id + 10 * r)
+            tx = '<[%d HBBFT Input %d]>' % (self.id, r)
+            if len(tx) < tsxSize:
+                tx = tx + "!"*(tsxSize-len(tx))
             HoneyBadgerBFT.submit_tx(self, tx)
 
     def hbbft_instance(self):

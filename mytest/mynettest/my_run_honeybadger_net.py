@@ -49,7 +49,7 @@ def loadKeys():
     return (sPK, sSKs, ePK, eSKs)
 
 
-def _test_honeybadger(i: int, K=2, N=4, f=1, seed=None):
+def _test_honeybadger(i: int, K=2, tsxSize=20,  N=4, f=1, seed=None):
     def run_hbbft_instance(badger: HoneyBadgerBFTNode):
             badger.start_server()
 
@@ -75,7 +75,7 @@ def _test_honeybadger(i: int, K=2, N=4, f=1, seed=None):
         
     badger = HoneyBadgerBFTNode(sid, i, 1, N, f,
                                 sPK, sSKs[i], ePK, eSKs[i],
-                                addresses_list=addresses, K=K)
+                                addresses_list=addresses, K=K, tsxSize=tsxSize)
 
     badger.start_server()
     time.sleep(2)
@@ -110,8 +110,11 @@ def test_honeybadger_proc():
 if __name__ == '__main__':
     node = int(sys.argv[1])
     K = 2
-    if len(sys.argv) > 2
+    if len(sys.argv) > 2:
         K = int(sys.argv[2])
+    tsxSize = 20
+    if len(sys.argv) > 3:
+        tsxSize = int(sys.argv[3])
     #test_honeybadger_thread()
     #test_honeybadger_proc()
-    _test_honeybadger(node, K)
+    _test_honeybadger(node, K, tsxSize)
